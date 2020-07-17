@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"summer-two/service"
+	"what-unexpected-summer/summer-two/service"
 )
 
 func SelectGoods(ctx *gin.Context) {
@@ -24,7 +24,8 @@ func AddGood(ctx *gin.Context){
 	num := ctx.PostForm("num")
 	prices,_ := strconv.Atoi(price)
 	nums,_ := strconv.Atoi(num)
-	err := service.AddGoods(name,prices,nums)
+
+	err := service.AddGoods(name,nums,prices)
 	if err != nil {
 		ctx.JSON(200,gin.H{"status":10001,"message":"fail"})
 		return

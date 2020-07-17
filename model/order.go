@@ -11,7 +11,7 @@ type Order struct {
 
 // 下单
 func (order *Order)MakeOrder() error{
-	return DB.Create(&order).Error
+	return DB.Model(&Order{}).Create(&order).Error
 }
 
 
@@ -22,4 +22,12 @@ func GetOrderByUserID(userId string) (orders []Order, err error){
  		return nil, err
 	}
 	return orders,nil
+}
+
+func UpdateGoodsByUserId(id int,num int) ( err error){
+	err = DB.Model(Goods{}).Where("id = ?",id).Update("num",num).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }

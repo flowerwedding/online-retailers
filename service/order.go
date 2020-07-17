@@ -2,7 +2,7 @@ package service
 
 import (
 	"log"
-	"summer-two/model"
+	"what-unexpected-summer/summer-two/model"
 )
 
 // order

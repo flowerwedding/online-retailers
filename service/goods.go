@@ -2,7 +2,7 @@ package service
 
 import (
 	"log"
-	"summer-two/model"
+	"what-unexpected-summer/summer-two/model"
 )
 
 type Goods struct {
@@ -11,8 +11,6 @@ type Goods struct {
 	Price int    `json:"price"`
 	Num   int    `json:"num"`
 }
-
-var Ids uint
 
 // 添加商品
 func AddGoods(name string,num int,price int) error{
@@ -28,7 +26,6 @@ func AddGoods(name string,num int,price int) error{
     	return err
     }
 
-    Ids++
 	return nil
 }
 
@@ -39,7 +36,7 @@ func SelectGoods() (goods []Goods) {
 	}
 	for _, v := range _goods {
 		good := Goods{
-			ID:    v.ID,
+			ID:    uint(v.ID),
 			Name:  v.Name,
 			Price: v.Price,
 			Num:   v.Num,

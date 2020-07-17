@@ -4,7 +4,7 @@ import "github.com/jinzhu/gorm"
 
 type Goods struct {
 	gorm.Model
-	ID    uint
+	ID    int
 	Name  string
 	Price int
 	Num   int
@@ -13,7 +13,7 @@ type Goods struct {
 
 // 添加商品
 func (goods *Goods)AddGoods() error{
-	return DB.Create(goods).Error
+	return DB.Model(&Goods{}).Create(&goods).Error
 }
 
 // 查看商品

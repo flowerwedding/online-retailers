@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"summer-two/controller"
-	"summer-two/model"
-	"summer-two/service"
+	"what-unexpected-summer/summer-two/controller"
+	"what-unexpected-summer/summer-two/model"
+	"what-unexpected-summer/summer-two/service"
 )
 
 func main() {
@@ -12,7 +12,7 @@ func main() {
 	service.InitService()
 	r := gin.Default()
 	r.GET("/getGoods", controller.SelectGoods)
-	r.GET("/addGood", controller.AddGood)
+	r.POST("/addGood", controller.AddGood)
 	r.POST("/order", controller.MakeOrder)
 
 	_ = r.Run(":8080")

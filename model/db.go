@@ -16,12 +16,17 @@ func InitDB()  {
 	}
 
 	DB = db
-	if !DB.HasTable(&Order{}) {
-		DB.CreateTable(&Order{})
+	DB.SingularTable(true)
+	if !DB.HasTable(&Goods{}) {
+		if err := DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4").CreateTable(&Goods{}).Error; err != nil {
+			panic(err)
+		}
 	}
 
-	if !DB.HasTable(&Goods{}) {
-		DB.CreateTable(&Goods{})
+	if !DB.HasTable(&Order{}) {
+		if err := DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4").CreateTable(&Order{}).Error; err != nil {
+			panic(err)
+		}
 	}
 
 }

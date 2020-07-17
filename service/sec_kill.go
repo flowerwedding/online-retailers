@@ -1,19 +1,22 @@
 package service
 
 import (
+	"fmt"
 	"log"
-	"summer-two/model"
 	"sync"
 	"time"
+	"what-unexpected-summer/summer-two/model"
 )
 
 //定义的一个用户结构体，在controller层放入管道
 type User struct {
 	UserId string
 	GoodsId  uint
+	Num      int
 }
 
 //就是那个用户结构体被放入的管道，传输用户类型的，最大缓存1024个
+//换成消息队列就不用channel了，但是下面那个map不变，消息队列参数也改查User
 var OrderChan = make(chan User, 1024)
 
 //一个以商品id为key，商品信息的结构体item的指针为value的map
@@ -33,22 +36,16 @@ type Item struct {
 }
 
 // TODO 写一个定时任务，每天定时从数据库加载数据到Map
-var Id uint
-
 func build(){
-	ticker := time.NewTicker(1 * time.Hour)
+	ticker := time.NewTicker(6 * time.Hour)
 
-	for {
+	ItemMap = make(map[uint]*Item)
+	goods, _ := model.SelectGoods()
+
+	for _,good := range goods{
 		<-ticker.C
-
-		if Id > Ids{
-			continue
-		}
-		good, _ := model.SelectGoodsById(Id)
-		Id++
-
 		item := &Item{
-			ID:        good.ID,
+			ID:        uint(good.Model.ID),
 			Name:      good.Name,
 			Total:     good.Num,
 			Left:      good.Num,
@@ -57,27 +54,41 @@ func build(){
 			sellCh:    make(chan int),
 		}
 		ItemMap[item.ID] = item
+
 		item.Monitor()
 		go item.OffShelve()
 	}
+
 }
 
 //第一个Map也就是被初始化的那个map，为什么会有这个的存在？？？
 func initMap() {
-	item := &Item{
-		ID:        1,
-		Name:      "测试",
-		Total:     100,
-		Left:      100,
-		IsSoldOut: false,
-		leftCh:    make(chan int),
-		sellCh:    make(chan int),
+	goods, _ := model.SelectGoods()
+
+	for _,good := range goods{
+		item := &Item{
+			ID:        uint(good.Model.ID),
+			Name:      good.Name,
+			Total:     good.Num,
+			Left:      good.Num,
+			IsSoldOut: false,
+			leftCh:    make(chan int),
+			sellCh:    make(chan int),
+		}
+		ItemMap[item.ID] = item
+
+		fmt.Println(ItemMap)
+		item.Monitor()
+		go item.OffShelve()
 	}
-	ItemMap[item.ID] = item
+
 }
 
 //通过参数商品id，来返回它在map里面对应的value，也就是商品信息的结构体指针
 func getItem(itemId uint) *Item{
+	fmt.Println(ItemMap)
+	fmt.Println(ItemMap[itemId])
+
 	return ItemMap[itemId]
 }
 
@@ -88,14 +99,15 @@ func getItem(itemId uint) *Item{
 func order() {
 	for {
 		user := <- OrderChan
+
 		item := getItem(user.GoodsId)
-		item.SecKilling(user.UserId)
+		item.SecKilling(user.UserId,user.Num)
 	    }
 }
 
 //这个函数带锁，一进去就锁最后才开锁，可能是怕太多人同时买这个商品造成信息错误
 //判断该商品是否卖完，卖完直接退出，否正就买（一个），与此同时增加订单
-func (item *Item) SecKilling(userId string) {
+func (item *Item) SecKilling(userId string,num int) {
 
 	item.Lock.Lock()
 	defer item.Lock.Unlock()
@@ -103,14 +115,14 @@ func (item *Item) SecKilling(userId string) {
 	// var lock = make(chan struct{}, 1}
 	// lock <- struct{}{}
 	// defer func() {
-    // 		<- lock
-    // }
+	// 		<- lock
+	// }
 	if item.IsSoldOut {
 		return
 	}
-	item.BuyGoods(1)
+	item.BuyGoods(num)
 
-	MakeOrder(userId, item.ID,1)
+	MakeOrder(userId, item.ID,num)
 
 
 }
@@ -138,8 +150,13 @@ func (item *Item) SalesGoods() {
 	for {
 		select {
 		case num := <-item.sellCh://有人来买
-			if item.Left -= num; item.Left <= 0 {
+		    if item.Left -= num; item.Left <= 0 {
 				item.IsSoldOut = true
+			}
+
+			if err := model.UpdateGoodsByUserId(int(item.ID),item.Left);err != nil{
+				log.Println(1)
+				return
 			}
 
 		case item.leftCh <- item.Left://这个有什么意义，和下面获取剩余库存的有关系吗？？？
@@ -183,11 +200,13 @@ func (item *Item) BuyGoods(num int) {
 func InitService() {
 	initMap()
 	go build()
-	for _,item := range ItemMap{//这下面两个就是一个打开协程的作用，但是执不执行等命令，这里的ItemMap只有一对键值，为什么要循环？？？
-		item.Monitor()//为什么要用一个方法，不能直接开协程吗？？？
-		go item.OffShelve()//这个函数里面有判断是否卖完
-	}
+//	for _,item := range ItemMap { //这下面两个就是一个打开协程的作用，但是执不执行等命令，这里的ItemMap只有一对键值，为什么要循环？？？
+//		item.Monitor()      //为什么要用一个方法，不能直接开协程吗？？？
+//		go item.OffShelve() //这个函数里面有判断是否卖完
+//	}
+
 	for i := 0; i < 10; i++ {
-		go order()//然后开了十个管道去监听是否有人买
+//		go order()//然后开了十个管道去监听是否有人买
+		go OpenConsumer()
 	}
 }
